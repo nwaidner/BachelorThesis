@@ -17,7 +17,7 @@ class ClassificationResult:
                f"Runtime: {self.runtime}"
 
 
-csv_file_path = '/Attic/metrics_FINAL_6.csv'
+csv_file_path = '/last_metrics.csv'
 with open(csv_file_path, 'r') as file:
     csv_data = file.readlines()
 

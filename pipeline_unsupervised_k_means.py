@@ -1,16 +1,25 @@
 from sklearn.cluster import KMeans
+import numpy as np
 
 
-def k_means_classifier(X_train, X_test, y_train, y_test, task_name, random_state):
+def k_means(X_train, X_test, y_train, y_test, task_name, random_state):
 
-    kmeans = KMeans(n_clusters=4, random_state=42)
-    kmeans.fit(X_train)
+    mask = ~y_train
+    X_train_cleaned = X_train[mask]
+    y_train_cleaned = y_train[mask]
 
-    distances = kmeans.predict(X_test)
+    kmeans = KMeans(n_clusters=4, random_state=random_state, n_init=10)
+    kmeans.fit(X_train_cleaned)
 
-    y_pred = distances > 1.5
+    distances = np.min(kmeans.transform(X_test), axis=1)
 
-    name = k_means_classifier.__name__
+    threshold = np.percentile(distances, 60)
 
-    return y_test, y_pred, name, task_name, random_state
+    y_pred_anomaly = distances > threshold
+
+    name = k_means.__name__
+
+    return y_test, y_pred_anomaly, name, task_name, random_state
+
+
 

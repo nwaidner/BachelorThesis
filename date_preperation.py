@@ -62,11 +62,15 @@ def standardise(X_train, X_test):
     return X_train, X_test
 
 
-def mean_impute(X_train, X_test):
-    X_train = X_train.fillna(X_train.mean())
-    X_test = X_test.fillna(X_train.mean())
+def lineare_interpolation_impute(X_train, X_test):
+    x_train = drop_column_with_high_nan(X_train, 20)
+    x_test = drop_column_with_high_nan(X_test, 20)
 
-    return X_train, X_test
+    x_train_imputed = pd.DataFrame(x_train).interpolate(method='linear', axis=0).values
+
+    x_test_imputed = pd.DataFrame(x_test).interpolate(method='linear', axis=0).values
+
+    return x_train_imputed, x_test_imputed
 
 
 def knn_impute(x_train, x_test):
@@ -75,13 +79,17 @@ def knn_impute(x_train, x_test):
 
     knn_imputer = KNNImputer(n_neighbors=5)
 
-    # Impute train data
     x_train_imputed = knn_imputer.fit_transform(x_train)
 
-    # Impute test data
     x_test_imputed = knn_imputer.transform(x_test)
 
     return x_train_imputed, x_test_imputed
+
+def mean_impute(X_train, X_test):
+    X_train = X_train.fillna(X_train.mean())
+    X_test = X_test.fillna(X_test.mean())
+
+    return X_train, X_test
 
 
 def remove_label(X, y, label_to_remove):
@@ -100,7 +108,6 @@ def remove_label(X, y, label_to_remove):
 def drop_wirkleistung_umrichter(df):
     df_copy = df.copy()  # Create a copy of the DataFrame
 
-    # Filter and modify the copy
     df_copy = df_copy[df_copy['Wirkleistung Umrichter (Min, FC001)'] >= 20]
     df_copy.drop('Wirkleistung Umrichter (Min, FC001)', axis=1, inplace=True)
 
@@ -135,47 +142,27 @@ def prep(input_df, random_state, remove_from_train_1, remove_from_train_2, remov
 
     X_train, X_test = standardise(X_train, X_test)
 
-    X_train, X_test = mean_impute(X_train, X_test)
+    X_train, X_test = lineare_interpolation_impute(X_train, X_test)
 
     return X_train, X_test, y_train, y_test
 
 
-# Preparation Pipelines:
 def prep_random(input_df):
-    # df nach Unit aufteilen
     grouped = input_df.groupby('Unit')
     unit1_merged = grouped.get_group('unit 1').copy()
     unit2_merged = grouped.get_group('unit 2').copy()
 
-    # df in X und y aufteilen
     y = unit1_merged[['Defect']]
     X = unit1_merged.drop(['Unit', 'Zeitstempel', 'Defect'], axis=1, inplace=False)
 
-    # Train Test Split
     X_train, X_test, y_train, y_test = (train_test_split(X, y, test_size=0.2, random_state=42))
 
-    '''
-    # Drop Test Label value
-    y_test_allowed_indices = y_test.index[y_test['Defect'] == 'sensordefect 1'].tolist()
-    y_test = y_test.loc[y_test_allowed_indices]
-    X_test = X_test.loc[y_test_allowed_indices]
-
-    # Drop Train Label value
-    y_train_forbidden_indices = y_train.index[y_train['Defect'] == 'sensordefect 1'].tolist()
-    X_train.drop(y_train_forbidden_indices, inplace=True)
-    y_train.drop(y_train_forbidden_indices, inplace=True)
-'''
-
-
-    # Defects zu in boolean Werte umwandeln
     y_train['Defect'] = unit1_merged['Defect'].notna()
     y_test['Defect'] = unit1_merged['Defect'].notna()
 
-    # df von y in 1D Array umwandeln
     y_train = y_train.values.ravel()
     y_test = y_test.values.ravel()
 
-    # Standardisieren der Daten
     scaler = StandardScaler()
     scaler.fit(X_train)
 
@@ -185,7 +172,6 @@ def prep_random(input_df):
     X_train = pd.DataFrame(X_train)
     X_test = pd.DataFrame(X_test)
 
-    # Imputieren von fehlenden Werten
     X_train = X_train.fillna(X_train.mean())
     X_test = X_test.fillna(X_train.mean())
 
@@ -193,19 +179,15 @@ def prep_random(input_df):
 
 
 def prep_ohne_sensordefect1_in_trainingsdaten(input_df):
-    # df nach Unit aufteilen
     grouped = input_df.groupby('Unit')
     unit1_merged = grouped.get_group('unit 1').copy()
     unit2_merged = grouped.get_group('unit 2').copy()
 
-    # df in X und y aufteilen
     y = unit1_merged[['Defect']]
     X = unit1_merged.drop(['Unit', 'Zeitstempel', 'Defect'], axis=1, inplace=False)
 
-    # Train Test Split
     X_train, X_test, y_train, y_test = (train_test_split(X, y, test_size=0.2, random_state=42))
 
-    # Drop Train Label value
     y_train_forbidden_indices = y_train.index[y_train['Defect'] == 'sensordefect 1'].tolist()
     X_train.drop(y_train_forbidden_indices, inplace=True)
     y_train.drop(y_train_forbidden_indices, inplace=True)
@@ -214,15 +196,12 @@ def prep_ohne_sensordefect1_in_trainingsdaten(input_df):
     länge_y = len(y_test)
     print(f'{länge_def} of {länge_y} = {1-(länge_def/länge_y)}' )
 
-    # Defects zu in boolean Werte umwandeln
     y_train['Defect'] = unit1_merged['Defect'].notna()
     y_test['Defect'] = unit1_merged['Defect'].notna()
 
-    # df von y in 1D Array umwandeln
     y_train = y_train.values.ravel()
     y_test = y_test.values.ravel()
 
-    # Standardisieren der Daten
     scaler = StandardScaler()
     scaler.fit(X_train)
 
@@ -232,7 +211,6 @@ def prep_ohne_sensordefect1_in_trainingsdaten(input_df):
     X_train = pd.DataFrame(X_train)
     X_test = pd.DataFrame(X_test)
 
-    # Imputieren von fehlenden Werten
     X_train = X_train.fillna(X_train.mean())
     X_test = X_test.fillna(X_train.mean())
 
@@ -240,19 +218,15 @@ def prep_ohne_sensordefect1_in_trainingsdaten(input_df):
 
 
 def prep_ohne_sensordefect2_in_trainingsdaten(input_df):
-    # df nach Unit aufteilen
     grouped = input_df.groupby('Unit')
     unit1_merged = grouped.get_group('unit 1').copy()
     unit2_merged = grouped.get_group('unit 2').copy()
 
-    # df in X und y aufteilen
     y = unit1_merged[['Defect']]
     X = unit1_merged.drop(['Unit', 'Zeitstempel', 'Defect'], axis=1, inplace=False)
 
-    # Train Test Split
     X_train, X_test, y_train, y_test = (train_test_split(X, y, test_size=0.2, random_state=42))
 
-    # Drop Train Label value
     y_train_forbidden_indices = y_train.index[y_train['Defect'] == 'sensordefect 2'].tolist()
     X_train.drop(y_train_forbidden_indices, inplace=True)
     y_train.drop(y_train_forbidden_indices, inplace=True)
@@ -262,15 +236,12 @@ def prep_ohne_sensordefect2_in_trainingsdaten(input_df):
     länge_y = len(y_test)
     print(f'{länge_def} of {länge_y} = {1-(länge_def/länge_y)}' )
 
-    # Defects zu in boolean Werte umwandeln
     y_train['Defect'] = unit1_merged['Defect'].notna()
     y_test['Defect'] = unit1_merged['Defect'].notna()
 
-    # df von y in 1D Array umwandeln
     y_train = y_train.values.ravel()
     y_test = y_test.values.ravel()
 
-    # Standardisieren der Daten
     scaler = StandardScaler()
     scaler.fit(X_train)
 
@@ -280,7 +251,6 @@ def prep_ohne_sensordefect2_in_trainingsdaten(input_df):
     X_train = pd.DataFrame(X_train)
     X_test = pd.DataFrame(X_test)
 
-    # Imputieren von fehlenden Werten
     X_train = X_train.fillna(X_train.mean())
     X_test = X_test.fillna(X_train.mean())
 
@@ -288,19 +258,15 @@ def prep_ohne_sensordefect2_in_trainingsdaten(input_df):
 
 
 def prep_ohne_sensordefect3_in_trainingsdaten(input_df):
-    # df nach Unit aufteilen
     grouped = input_df.groupby('Unit')
     unit1_merged = grouped.get_group('unit 1').copy()
     unit2_merged = grouped.get_group('unit 2').copy()
 
-    # df in X und y aufteilen
     y = unit1_merged[['Defect']]
     X = unit1_merged.drop(['Unit', 'Zeitstempel', 'Defect'], axis=1, inplace=False)
 
-    # Train Test Split
     X_train, X_test, y_train, y_test = (train_test_split(X, y, test_size=0.2, random_state=42))
 
-    # Drop Train Label value
     y_train_forbidden_indices = y_train.index[y_train['Defect'] == 'sensordefect 3'].tolist()
     X_train.drop(y_train_forbidden_indices, inplace=True)
     y_train.drop(y_train_forbidden_indices, inplace=True)
@@ -310,15 +276,12 @@ def prep_ohne_sensordefect3_in_trainingsdaten(input_df):
     länge_y = len(y_test)
     print(f'{länge_def} of {länge_y} = {1-(länge_def/länge_y)}' )
 
-    # Defects zu in boolean Werte umwandeln
     y_train['Defect'] = unit1_merged['Defect'].notna()
     y_test['Defect'] = unit1_merged['Defect'].notna()
 
-    # df von y in 1D Array umwandeln
     y_train = y_train.values.ravel()
     y_test = y_test.values.ravel()
 
-    # Standardisieren der Daten
     scaler = StandardScaler()
     scaler.fit(X_train)
 
@@ -328,7 +291,6 @@ def prep_ohne_sensordefect3_in_trainingsdaten(input_df):
     X_train = pd.DataFrame(X_train)
     X_test = pd.DataFrame(X_test)
 
-    # Imputieren von fehlenden Werten
     X_train = X_train.fillna(X_train.mean())
     X_test = X_test.fillna(X_train.mean())
 
@@ -336,19 +298,15 @@ def prep_ohne_sensordefect3_in_trainingsdaten(input_df):
 
 
 def prep_ohne_sensordefect4_in_trainingsdaten(input_df):
-    # df nach Unit aufteilen
     grouped = input_df.groupby('Unit')
     unit1_merged = grouped.get_group('unit 1').copy()
     unit2_merged = grouped.get_group('unit 2').copy()
 
-    # df in X und y aufteilen
     y = unit1_merged[['Defect']]
     X = unit1_merged.drop(['Unit', 'Zeitstempel', 'Defect'], axis=1, inplace=False)
 
-    # Train Test Split
     X_train, X_test, y_train, y_test = (train_test_split(X, y, test_size=0.2, random_state=42))
 
-    # Drop Train Label value
     y_train_forbidden_indices = y_train.index[y_train['Defect'] == 'sensordefect 4'].tolist()
     X_train.drop(y_train_forbidden_indices, inplace=True)
     y_train.drop(y_train_forbidden_indices, inplace=True)
@@ -358,15 +316,12 @@ def prep_ohne_sensordefect4_in_trainingsdaten(input_df):
     länge_y = len(y_test)
     print(f'{länge_def} of {länge_y} = {1-(länge_def/länge_y)}' )
 
-    # Defects zu in boolean Werte umwandeln
     y_train['Defect'] = unit1_merged['Defect'].notna()
     y_test['Defect'] = unit1_merged['Defect'].notna()
 
-    # df von y in 1D Array umwandeln
     y_train = y_train.values.ravel()
     y_test = y_test.values.ravel()
 
-    # Standardisieren der Daten
     scaler = StandardScaler()
     scaler.fit(X_train)
 
@@ -376,7 +331,6 @@ def prep_ohne_sensordefect4_in_trainingsdaten(input_df):
     X_train = pd.DataFrame(X_train)
     X_test = pd.DataFrame(X_test)
 
-    # Imputieren von fehlenden Werten
     X_train = X_train.fillna(X_train.mean())
     X_test = X_test.fillna(X_train.mean())
 
@@ -384,37 +338,29 @@ def prep_ohne_sensordefect4_in_trainingsdaten(input_df):
 
 
 def prep_train_ohne_s1_test_nur_s1(input_df):
-    # df nach Unit aufteilen
     grouped = input_df.groupby('Unit')
     unit1_merged = grouped.get_group('unit 1').copy()
     unit2_merged = grouped.get_group('unit 2').copy()
 
-    # df in X und y aufteilen
     y = unit1_merged[['Defect']]
     X = unit1_merged.drop(['Unit', 'Zeitstempel', 'Defect'], axis=1, inplace=False)
 
-    # Train Test Split
     X_train, X_test, y_train, y_test = (train_test_split(X, y, test_size=0.2, random_state=42))
 
-    # Drop Test Label value
     y_test_allowed_indices = y_test.index[y_test['Defect'] == 'sensordefect 1'].tolist()
     y_test = y_test.loc[y_test_allowed_indices]
     X_test = X_test.loc[y_test_allowed_indices]
 
-    # Drop Train Label value
     y_train_forbidden_indices = y_train.index[y_train['Defect'] == 'sensordefect 1'].tolist()
     X_train.drop(y_train_forbidden_indices, inplace=True)
     y_train.drop(y_train_forbidden_indices, inplace=True)
 
-    # Defects zu in boolean Werte umwandeln
     y_train['Defect'] = unit1_merged['Defect'].notna()
     y_test['Defect'] = unit1_merged['Defect'].notna()
 
-    # df von y in 1D Array umwandeln
     y_train = y_train.values.ravel()
     y_test = y_test.values.ravel()
 
-    # Standardisieren der Daten
     scaler = StandardScaler()
     scaler.fit(X_train)
 
@@ -424,7 +370,6 @@ def prep_train_ohne_s1_test_nur_s1(input_df):
     X_train = pd.DataFrame(X_train)
     X_test = pd.DataFrame(X_test)
 
-    # Imputieren von fehlenden Werten
     X_train = X_train.fillna(X_train.mean())
     X_test = X_test.fillna(X_train.mean())
 
