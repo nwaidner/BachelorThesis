@@ -6,7 +6,6 @@ def k_means(X_train, X_test, y_train, y_test, task_name, random_state):
 
     mask = ~y_train
     X_train_cleaned = X_train[mask]
-    y_train_cleaned = y_train[mask]
 
     kmeans = KMeans(n_clusters=4, random_state=random_state, n_init=10)
     kmeans.fit(X_train_cleaned)

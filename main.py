@@ -1,28 +1,27 @@
 from pipeline_supervised_knn import knn
 from pipeline_supervised_rf import random_forest
 from pipeline_supervised_svm import svm
-from pipeline_unsupervised_autoencoder import autoencoder
+from pipeline_unsupervised_autoencoder import autoencoder_model
 from pipeline_unsupervised_isolation_forest import isolation_forest
 from pipeline_unsupervised_k_means import k_means
 from data_import import get_merged_df_from_file
-from date_preperation import prep
+from data_preperation import prep
 from Metric_s import save_metrics_csv
 import concurrent.futures
 
 
 def test_each_pipeline(X_train_base, X_test_base, y_train_base, y_test_base, task_name, random_state_base, file_path):
     classifiers = [
-        #knn,
-        #svm,
-        autoencoder,
-        #k_means,
+        knn,
+        svm,
+        autoencoder_model,
+        k_means,
         isolation_forest,
-        #random_forest
+        random_forest
     ]
 
     def run_classifier(classifier):
-        y_test, y_pred, name, _, random_state = classifier(X_train_base, X_test_base, y_train_base, y_test_base,
-                                                           task_name, random_state_base)
+        y_test, y_pred, name, _, random_state = classifier(X_train_base, X_test_base, y_train_base, y_test_base, task_name, random_state_base)
         save_metrics_csv(y_test, y_pred, file_path, name, task_name, random_state)
 
     with concurrent.futures.ThreadPoolExecutor() as executor:
@@ -58,7 +57,7 @@ def test_each_scenario(df, random_state, file_path):
 
 
 df = get_merged_df_from_file()
-test_each_scenario(df=df, random_state=42, file_path='final_metrics_relu.csv')
+test_each_scenario(df=df, random_state=42, file_path='final_final.csv')
 
 
 

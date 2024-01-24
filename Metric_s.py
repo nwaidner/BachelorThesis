@@ -17,7 +17,7 @@ def print_metrics(y_test, y_pred):
 def save_metrics_csv(y_test, y_pred, file_path, classifier_name, task_name, random_state):
     accuracy = accuracy_score(y_test, y_pred)
     balanced_accuracy = balanced_accuracy_score(y_test, y_pred)
-    f1 = f1_score(y_test, y_pred, average='weighted')
+    f1 = f1_score(y_test, y_pred, average='binary')
 
     with open(file_path, mode='a', newline='') as file:
         writer = csv.writer(file)

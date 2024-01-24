@@ -1,9 +1,14 @@
 from sklearn.ensemble import IsolationForest
+import numpy as np
 
 
 def isolation_forest(X_train, X_test, y_train, y_test, task_name, random_state):
 
-    clf = IsolationForest(contamination=0.04820708799148221, random_state=42)
+    contamination = np.sum(y_train == True) / len(y_train)
+
+    print(contamination)
+
+    clf = IsolationForest(contamination=contamination, random_state=42)
     clf.fit(X_train)
 
     test_anomaly_scores = clf.decision_function(X_test)
