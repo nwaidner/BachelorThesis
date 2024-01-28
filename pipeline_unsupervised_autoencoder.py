@@ -1,16 +1,17 @@
 import numpy as np
 from tensorflow.keras.layers import Input, Dense
 from tensorflow.keras.models import Model
-from table_merge import *
+import pandas as pd
 
 
 def add_autoencoder(data):
-    input_layer = Input(shape=(data.shape[1],))
+    input_layer = Input(shape=(data.shape[1]))
     encoded = Dense(336, activation='relu')(input_layer)
     encoded = Dense(112, activation='relu')(encoded)
     encoded = Dense(64, activation='relu')(encoded)
 
     decoded = Dense(64, activation='relu')(encoded)
+    decoded = Dense(112, activation='relu')(decoded)
     decoded = Dense(data.shape[1], activation='linear')(decoded)
 
     autoencoder = Model(inputs=input_layer, outputs=decoded)

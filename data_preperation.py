@@ -1,5 +1,4 @@
 import pandas as pd
-from sklearn.impute import KNNImputer
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler
 
@@ -39,6 +38,7 @@ def drop_column_with_high_nan(df, threshold):
     missing_percentage = (df.isnull().mean() * 100)
     columns_to_drop = missing_percentage[missing_percentage > threshold].index
     df_cleaned = df.drop(columns=columns_to_drop)
+
     return df_cleaned
 
 
@@ -71,25 +71,6 @@ def lineare_interpolation_impute(X_train, X_test):
     x_test_imputed = pd.DataFrame(x_test).interpolate(method='linear', axis=0).values
 
     return x_train_imputed, x_test_imputed
-
-
-def knn_impute(x_train, x_test):
-    x_train = drop_column_with_high_nan(x_train, 20)
-    x_test = drop_column_with_high_nan(x_test, 20)
-
-    knn_imputer = KNNImputer(n_neighbors=5)
-
-    x_train_imputed = knn_imputer.fit_transform(x_train)
-
-    x_test_imputed = knn_imputer.transform(x_test)
-
-    return x_train_imputed, x_test_imputed
-
-def mean_impute(X_train, X_test):
-    X_train = X_train.fillna(X_train.mean())
-    X_test = X_test.fillna(X_test.mean())
-
-    return X_train, X_test
 
 
 def remove_label(X, y, label_to_remove):
